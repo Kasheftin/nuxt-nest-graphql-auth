@@ -1,0 +1,24 @@
+fragment AuthUser on User {
+  id
+  email
+  status
+}
+
+mutation signin($data: SigninDto!) {
+  signin(data: $data) {
+    ...AuthUser
+  }
+}
+
+mutation signOut {
+  signOut {
+    ...AuthUser
+  }
+}
+
+query me {
+  me {
+    ...AuthUser
+  }
+}
+

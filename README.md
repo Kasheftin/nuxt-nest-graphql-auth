@@ -67,7 +67,7 @@ On this stage we should get a successfully running hello-world application on `h
 
 ## 2. Prisma
 
-Prisma is a great ORM which connects to the database and allows using typescript classes instead of writing raw sql queries.
+Prisma is a great ORM which connects to the database and allows using TypeScript classes instead of writing raw sql queries.
 
 ````
 $ npm i --save prisma nestjs-prisma
@@ -75,7 +75,7 @@ $ npx prisma init --datasource-provider mysql
 ````
 
 
-A significant caveat with the modern development is that almost every tool uses it's own language. Prisma uses it's schema files that needs to be translated to typescript. GraphQL uses it's own schema which also requires translation to typescript. 
+A significant caveat with the modern development is that almost every tool uses it's own language. Prisma uses it's schema files that needs to be translated to TypeScript. GraphQL uses it's own schema which also requires translation to TypeScript. 
 
 Let's append `prisma/schema.prisma` with the user model:
 
@@ -109,7 +109,7 @@ $ prisma migrate dev --name user-init
 ````
 
 ## 3. GraphQL Hello World
-We are using code-first approach meaning `src/schema.gql` will be auto-generated based on the typescript models. We need:
+We are using code-first approach meaning `src/schema.gql` will be auto-generated based on the TypeScript models. We need:
 ````
 $ npm i --save @nestjs/graphql @nestjs/apollo apollo-server-express
 $ npm i --save bcrypt @types/bcrypt
@@ -396,3 +396,93 @@ transformSchema: schema => applyMiddleware(schema, permissions)
 
 ### Where's Passport.JS?
 We are not using it. It gives overhead only. If you find it useful, [here's a great tutorial about setting up GraphQL with Passport.JS](https://www.youtube.com/watch?v=XPSSgAPjTb4).
+
+## 5. Initial Front-End Setup
+
+````
+$ npx nuxi init frontend
+$ cd frontend
+````
+
+The back-end url is `http://localhost:3001/graphql`. We have to add it to several configuration files. Let's start with the usual `.env`:
+````
+BASE_URL=http://localhost:3001/graphql
+````
+
+To be able to use `process.env` variables in Nuxt.js, we need to include it into `nuxt.config.js`:
+````javascript
+runtimeConfig: {
+  public: {
+    baseUrl: process.env.BASE_URL
+  }
+}
+````
+
+Notice that it's in `public` section. This case it becomes available both during server side rendering and on the client.
+
+## 6. Queries and GraphQL codegen
+
+We are going to write GraphQL queries in separate `api/queries/*.gql` files. It would be nice to have autocomplete and syntax highlight there. That's why VSCode Apollo Plugin is in use. It's configuration must be defined in `apollo.config.js`: 
+````javascript
+module.exports = {
+  client: {
+    service: {
+      url: 'http://localhost:3001/graphql'
+    },
+    includes: ['api/queries/*.gql']
+  }
+}
+````
+
+The next thing to set up is `graphql-codegen`. It creates TypeScript code based on `.gql` files. It gives type safety  while working with GraphQL data from Nuxt.js. To set it up we need to install:
+````
+$ npm i --save @graphql-codegen/cli @graphql-codegen/typescript @graphql-codegen/typescript-operations @graphql-codegen/typed-document-node
+````
+and specify the following configuration in `codegen.yml`:
+````
+overwrite: true
+schema: "http://localhost:3001/graphql"
+documents: "api/queries/*.gql"
+generates:
+  api/generated/types.ts:
+    plugins:
+      - typescript
+      - typescript-operations
+      - typed-document-node
+````
+
+Let's add the required queries into `api/queries/auth.gql`:
+
+````graphql
+fragment AuthUser on User {
+  id
+  email
+  status
+}
+
+mutation signin($data: SigninDto!) {
+  signin(data: $data) {
+    ...AuthUser
+  }
+}
+
+mutation signOut {
+  signOut {
+    ...AuthUser
+  }
+}
+
+query me {
+  me {
+    ...AuthUser
+  }
+}
+````
+
+Now we can generate TypeScript code using the following command:
+````
+$ npx graphql-codegen --config codegen.yml
+````
+
+## 7. Vuetify and Sass Variables
+It's not related to authentication, but still might be a bit tricky. We are going to install Vuetify Next and create some shared styles/mixins sass. The goal is to be able to use Vuetify sass variables and shared mixins in components.
