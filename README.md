@@ -260,7 +260,7 @@ import { AuthService } from '@/auth/auth.service'
         },
         context: async options => {
           // Later we'll load user to the context based on jwt cookie
-          // const user = await useAuthMiddleware(authService, options)
+          // const user = await runAuthMiddleware(authService, options)
           // return { req: options.req, user }
         }
       })
@@ -276,8 +276,123 @@ At this point we should be able to start dev server (`npm run start:dev`) and us
 
 ## 4. Back-End Authentication
 
-We need to implement sign in and sign out mutations as well as `me` query which is going to return currently signed in user.  
+We need to implement sign in and sign out mutations as well as `me` query which is going to return currently signed in user. The import section of `src/auth/auth.module.ts` has to be updated with registering JWT module:
 
+````typescript
+import { JwtModule } from '@nestjs/jwt'
+...
+imports: [JwtModule.register({ secret: process.env.JWT })]
+````
+
+This allows to create a signed JWT token when a user successfully signs in in `src/auth/auth.service.ts`:
+
+````typescript
+async signin(data: SigninDto): Promise<{ user: User; token: string }> {
+  const user = await this.prisma.user.findUnique({ where: { email: data.email } })
+  if (user) {
+    const passwordIsCorrect = await bcrypt.compare(data.password, user.password)
+    if (passwordIsCorrect) {
+      const token = this.jwtService.sign({ sub: user.id }, { expiresIn: '30 days' })
+      return { user, token }
+    }
+  }
+  throw new Error('Email or password is incorrect')
+}
+
+async me(token: string): Promise<User | null> {
+  if (token) {
+    const data = this.jwtService.decode(token, { json: true }) as { sub: unknown }
+    if (data?.sub && !isNaN(Number(data.sub))) {
+      const user = await this.prisma.user.findUnique({
+        where: { id: Number(data.sub) } 
+      })
+      return user || null
+    }
+  }
+  return null
+}
+````
+
+Notice we don't use refresh token technique. It's quite secure to store one long-lived token as http-only cookie instead. 
+
+We need to be able to write cookies from GraphQL resolver, that's why current request object has to be put to GraphQL context. The result of `authMiddleware` (currently signed in user) has to be put to the context as well, `src/app.module.ts`:
+
+````typescript
+GraphqlModule.forRootAsync({
+  ...,
+  context: async ({ req }) => {
+    const user = await authenticateUserByRequest(authService, req)
+    return { req, user }
+  }
+})
+````
+
+Here's `src/auth/auth.middleware.ts` which reads both the cookie and authorization header and returns the corresponding user:
+
+````typescript
+import { Request } from 'express'
+import { AuthService } from '@/auth/auth.service'
+
+export const authenticateUserByRequest = (authService: AuthService, request: Request) => {
+  const token = request.headers.authorization?.replace('Bearer ', '') || request.cookies.jwt || ''
+  return authService.me(token)
+}
+````
+
+We have to update `src/auth/auth.resolver.ts` with the corresponding mutations:
+
+````typescript
+@Mutation(() => User)
+async signinLocal(@Args('data') data: SigninDto, @Context('req') req: Request): Promise<User> {
+  const { user, token } = await this.authService.signinLocal(data)
+  req.res?.cookie('jwt', token, { httpOnly: true })
+  return user
+}
+
+@Mutation(() => User)
+async signOut(@Context('req') req: Request, @Context('user') user: User): Promise<User> {
+  req.res?.clearCookie('jwt', { httpOnly: true })
+  return user
+}
+
+@Query(() => User)
+async me(@Context('user') user: User): Promise<User> {
+  return user
+}
+````
+
+The last thing to do here is to deny using `me` query and `signOut` mutation for not authenticated users. We use `graphql-shield` for that. Here's how to set it up:
+
+````
+$ npm i --save graphql-shield graphql-middleware
+````
+
+`src/permissions.ts`:
+````typescript
+import { rule, shield } from 'graphql-shield'
+
+export const isAuthenticated = rule({})(async (parent, args, context) => {
+  return !!context.user
+})
+
+export const permissions = shield({
+  Query: {
+    me: isAuthenticated
+  },
+  Mutation: {
+    signOut: isAuthenticated
+  }
+})
+````
+
+GraphQL configuration has to include shield configuration in the following way (`src/app.module.ts`):
+````typescript
+import { permissions } from '@/permissions'
+...
+transformSchema: schema => applyMiddleware(schema, permissions)
+````
+
+![GraphQL Playground Authentication Flow](images/02-graphql-playground-authentication-flow.gif)
 
 ### Where's Passport.JS?
-We are not using it. It gives overhead only. If you wish to use it, [here's a great tutorial about setting up GraphQL with Passport.JS](https://www.youtube.com/watch?v=XPSSgAPjTb4).
+We are not using it. It gives overhead only. If you find it useful, [here's a great tutorial about setting up GraphQL with Passport.JS](https://www.youtube.com/watch?v=XPSSgAPjTb4).

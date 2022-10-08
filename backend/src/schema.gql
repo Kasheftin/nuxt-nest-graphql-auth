@@ -16,14 +16,22 @@ enum UserStatus {
 
 type Query {
   allUsers: [User!]!
+  me: User!
 }
 
 type Mutation {
   createUser(data: CreateUserDto!): User!
+  signin(data: SigninDto!): User!
+  signOut: User!
 }
 
 input CreateUserDto {
   email: String!
   password: String!
   status: UserStatus!
+}
+
+input SigninDto {
+  email: String!
+  password: String!
 }
