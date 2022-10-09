@@ -6,7 +6,8 @@
     "generate": "nuxt generate",
     "preview": "nuxt preview",
     "postinstall": "nuxt prepare",
-    "codegen": "graphql-codegen --config codegen.yml"
+    "codegen": "graphql-codegen --config codegen.yml",
+    "start": "cross-env PORT=48992 node .output/server/index.mjs"
   },
   "devDependencies": {
     "nuxt": "3.0.0-rc.11"
@@ -19,6 +20,7 @@
     "@mdi/js": "^7.0.96",
     "@pinia/nuxt": "^0.4.2",
     "@types/node": "^18.8.3",
+    "cross-env": "^7.0.3",
     "graphql": "^16.6.0",
     "pinia": "^2.0.22",
     "sass": "^1.55.0",
