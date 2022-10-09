@@ -1,6 +1,6 @@
 import { Field, InputType } from '@nestjs/graphql'
 import { UserStatus } from '@prisma/client'
-import { MaxLength, IsEmail } from 'class-validator'
+import { MaxLength, IsEmail, IsEnum } from 'class-validator'
 
 @InputType()
 export class CreateUserDto {
@@ -14,5 +14,6 @@ export class CreateUserDto {
   password: string
 
   @Field(() => UserStatus)
+  @IsEnum(UserStatus)
   status: UserStatus
 }
