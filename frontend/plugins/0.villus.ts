@@ -20,7 +20,7 @@ const addHeadersPlugin = (cookie: string) => (({ opContext }) => {
 
 export default defineNuxtPlugin((nuxtApp) => {
   const client = createClient({
-    url: process.server ? nuxtApp.$config.baseUrlServer : nuxtApp.$config.baseUrlClient,
+    url: nuxtApp.$config.baseUrl,
     use: [
       addHeadersPlugin(nuxtApp.ssrContext?.event?.req?.headers?.cookie),
       ...defaultPlugins()
