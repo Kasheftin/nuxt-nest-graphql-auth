@@ -4,22 +4,22 @@ We are building full-stack Nuxt.JS/Nest.JS/GraphQL application with authenticati
 
 ## 0. The Stack
 
-- **Back-End**
-  - **Nest.js** *(The most advanced Node.js framework + DTO and class-validator)*
-  - **Prisma** *(TypeScript ORM, MySQL is in use)*
-  - **GraphQL** *(We are using code-first approach)*
-- **Front-End**
-  - **Nuxt.js v3** *(Vue.js framework with SSR support out of the box + Vite, Pinia, Composition API and 100% TypeScript)*
-  - **Vuetify v3** *(Material design framework, still in beta but usable)* 
-  - **GraphQL/Codegen** *(Generating TypeScript for our graphql schema)*
-  - **Villus** *(A nice GraphQL client for Vue.js)*
+- **Backend**
+  - **[Nest.js](https://nestjs.com/)** *(The most advanced Node.js framework + DTO and class-validator)*
+  - **[Prisma](https://www.prisma.io/)** *(TypeScript ORM, MySQL is in use)*
+  - **[GraphQL](https://graphql.org/)** *(We are using [code-first approach](https://docs.nestjs.com/graphql/quick-start#code-first))*
+- **Frontend**
+  - **[Nuxt.js v3](https://v3.nuxtjs.org/)** *(Vue.js framework with SSR support out of the box + Vite, Pinia, Composition API and 100% TypeScript)*
+  - **[Vuetify v3](https://next.vuetifyjs.com/)** *(Material design framework, still in beta but usable)* 
+  - **[GraphQL/Codegen](https://www.the-guild.dev/graphql/codegen)** *(Generating TypeScript for our graphql schema)*
+  - **[Villus](https://villus.logaretm.com/)** *(A nice GraphQL client for Vue.js)*
 - **VSCode extensions**
-  - **Volar** *(Vetur must be turned off)*
-  - **Apollo GraphQL** *(For syntax autocomplete)*
-  - **Prisma** *(Working with schema.prisma files)*
+  - **[Volar](https://marketplace.visualstudio.com/items?itemName=Vue.volar)** *(Vetur must be turned off)*
+  - **[Apollo GraphQL](https://marketplace.visualstudio.com/items?itemName=apollographql.vscode-apollo)** *(For syntax autocomplete on the frontend)*
+  - **[Prisma](https://marketplace.visualstudio.com/items?itemName=Prisma.prisma)** *(Working with schema.prisma files)*
 
-## 1. Back-End Setup
-During the development the application will connect to the locally running MySQL `nest-nuxt-auth` database, the back-end will run on `localhost:3001`, and the front-end on `localhost:3000`.
+## 1. Backend Setup
+During the development the application will connect to the locally running MySQL `nest-nuxt-auth` database, the backend will run on `localhost:3001`, and the frontend on `localhost:3000`.
 
 ````
 $ npm i -g @nestjs/cli
@@ -27,7 +27,7 @@ $ nest new backend
 $ cd backend
 ````
 
-Here's the all `.env` configuration we need (it must be added to .gitignore):
+Here's the all `.env` configuration we need (it needs to be added to .gitignore):
 
 ````
 PORT=3001
@@ -41,7 +41,7 @@ $ npm i --save cookie-parser @types/cookie-parser
 $ npm i --save class-validator class-transformer 
 ````
 
-That's how our `src/main.ts` entry file looks like:
+This is how our `src/main.ts` entry file looks like:
 
 ````typescript
 import { NestFactory } from '@nestjs/core'
@@ -57,16 +57,16 @@ async function bootstrap() {
       whitelist: true
     })
   )
-  await app.listen(process.env.port || 3001)
+  await app.listen(process.env.PORT || 3001)
 }
 bootstrap()
 ````
 
-On this stage we should get a successfully running hello-world application on `http://localhost:3001` 
+At this stage we should get a successfully running hello-world application on `http://localhost:3001`. 
 
 ## 2. Prisma
 
-Prisma is a great ORM which connects to the database and allows using TypeScript classes instead of writing raw sql queries.
+Prisma is a great ORM that connects to the database and allows you to use TypeScript classes instead of writing raw SQL queries.
 
 ````
 $ npm i --save prisma nestjs-prisma
@@ -74,7 +74,7 @@ $ npx prisma init --datasource-provider mysql
 ````
 
 
-A significant caveat with the modern development is that almost every tool uses it's own language. Prisma uses it's schema files that needs to be translated to TypeScript. GraphQL uses it's own schema which also requires translation to TypeScript. 
+A major drawback with modern development is that almost every tool uses its own language. Prisma uses its schema files that needs to be translated to TypeScript. GraphQL uses its own schema, which also needs to be compiled into TypeScript. 
 
 Let's append `prisma/schema.prisma` with the user model:
 
@@ -102,13 +102,13 @@ model User {
 }
 ````
 
-After that we should be able to create a migration and tables in database using
+After that we should be able to create a migration and tables in the database by using
 ````
 $ prisma migrate dev --name user-init
 ````
 
 ## 3. GraphQL Hello World
-We are using code-first approach meaning `src/schema.gql` will be auto-generated based on the TypeScript models. We need:
+We use a code-first approach meaning `src/schema.gql` is automatically generated based on the TypeScript models. We need:
 ````
 $ npm i --save @nestjs/graphql @nestjs/apollo apollo-server-express
 $ npm i --save bcrypt @types/bcrypt
@@ -136,15 +136,15 @@ export class User {
   status: UserStatus
 }
 ````
-Notice we don't define `password` field because we don't want it to be exposed by the GraphQL API.
+Note that we don't define the `password` field because we don't want it to be exposed by the GraphQL API.
 
-The core concept of GraphQL is resolver. This is the entry point which defines what queries are supported and how to provide the data for every field. We start with the `allUsers` query and `createUser` mutation and use it to create some demo users in database. We need to create `src/auth` module with `auth.module.ts`, `auth.resolver.ts` and `auth.service.ts`. It's a common practice to use DTO as well:
+The core concept of GraphQL is the resolver. This is the entry point that defines what queries are supported and how the data is provided for each field. We start with the `allUsers` query and `createUser` mutation and use them to create some demo users in the database. We need to create `src/auth` module with `auth.module.ts`, `auth.resolver.ts` and `auth.service.ts`. It's a common practice to use DTO as well:
 
 `src/auth/dto/createUser.dto.ts`:
 ````typescript
 import { Field, InputType } from '@nestjs/graphql'
 import { UserStatus } from '@prisma/client'
-import { MaxLength, IsEmail } from 'class-validator'
+import { MaxLength, IsEmail, IsEnum } from 'class-validator'
 
 @InputType()
 export class CreateUserDto {
@@ -158,6 +158,7 @@ export class CreateUserDto {
   password: string
 
   @Field(() => UserStatus)
+  @IsEnum(UserStatus)
   status: UserStatus
 }
 ````
@@ -227,7 +228,7 @@ export class AuthService {
 }
 ````
 
-An essential thing to understand is how models correspond to each other. We defined user model twice: in prisma and in graphql. Hence, we have two classes - prisma user and graphql user. Service retrieves data from prisma, it returns prisma user. Resolver gets prisma user and presents it as graphql user. It works because in this particular case our users are compatible, but in general resolver should create a new graphql entity based on the received orm entity.
+It's important to understand how the models correspond to each other. We've defined the user model twice: in prisma and in graphql. Therefore, we have two classes - prisma user and graphql user. The service retrieves data from prisma and returns the prisma user. Resolver receives the prisma user and presents it as a graphql user. This works because in this particular case our users are compatible, but in general resolver should create a new graphql entity based on the received orm entity.
 
 To wire things up we need to update `src/app.module`:
 
@@ -257,10 +258,10 @@ import { AuthService } from '@/auth/auth.service'
           origin: 'http://localhost:3000',
           credentials: true
         },
-        context: async options => {
+        context: async ({ req }) => {
           // Later we'll load user to the context based on jwt cookie
-          // const user = await runAuthMiddleware(authService, options)
-          // return { req: options.req, user }
+          // const user = await authenticateUserByRequest(authService, req)
+          // return { req, user }
         }
       })
     })
@@ -269,13 +270,13 @@ import { AuthService } from '@/auth/auth.service'
 export class AppModule {}
 ````
 
-At this point we should be able to start dev server (`npm run start:dev`) and use [http://localhost:3001/graphql](http://localhost:3001/graphql) to create and read some dummy users:
+At this point we should be able to start the dev server (`npm run start:dev`) and use [http://localhost:3001/graphql](http://localhost:3001/graphql) to create and read some dummy users:
 
 ![GraphQL Playground createUser](images/01-graphql-playground-create-user.gif)
 
-## 4. Back-End Authentication
+## 4. Backend Authentication
 
-We need to implement sign in and sign out mutations as well as `me` query which is going to return currently signed in user. The import section of `src/auth/auth.module.ts` has to be updated with registering JWT module:
+We need to implement sign in and sign out mutations as well as `me` query that returns currently signed in user. The import section of `src/auth/auth.module.ts` must be updated with the registration of the JWT module:
 
 ````typescript
 import { JwtModule } from '@nestjs/jwt'
@@ -312,9 +313,9 @@ async me(token: string): Promise<User | null> {
 }
 ````
 
-Notice we don't use refresh token technique. It's quite secure to store one long-lived token as http-only cookie instead. 
+Note that we do not use a refresh token technique. It is quite safe to store one long-lived token as http-only cookie instead. 
 
-We need to be able to write cookies from GraphQL resolver, that's why current request object has to be put to GraphQL context. The result of `authMiddleware` (currently signed in user) has to be put to the context as well, here's the updated `src/app.module.ts`:
+We need to be able to write cookies from the GraphQL resolver, that's why current request object has to be placed in the GraphQL context. The result of `authMiddleware` (currently signed in user) must also be put into the context. Here's the updated `src/app.module.ts`:
 
 ````typescript
 GraphqlModule.forRootAsync({
@@ -332,15 +333,18 @@ It calls `src/auth/auth.middleware.ts` which reads both the cookie and authoriza
 import { Request } from 'express'
 import { AuthService } from '@/auth/auth.service'
 
-export const authenticateUserByRequest = (authService: AuthService, request: Request) => {
+export const authenticateUserByRequest = (
+  authService: AuthService, 
+  request: Request
+) => {
   const token = request.headers.authorization?.replace('Bearer ', '') || request.cookies.jwt || ''
   return authService.me(token)
 }
 ````
 
-The reason we need to support both cookie and authorization header is because Nuxt.js is going to send 2 types of requests: front-end (http-only cookie is in use) and back-end (during server side rendering, when it has access to the cookie and resends it in authorization header). 
+The reason we need to support both cookie and authorization header is because Nuxt.js is going to send 2 types of requests: frontend (http-only cookie is in use) and backend (during server side rendering, when it has access to the cookie and resends it in authorization header). 
 
-Now we can use GraphQL context in the corresponding mutations:
+Now we can use the GraphQL context in the corresponding mutations:
 
 ````typescript
 @Mutation(() => User)
@@ -362,7 +366,7 @@ async me(@Context('user') user: User): Promise<User> {
 }
 ````
 
-On this stage we should get the working solution. There's one last thing to fix. Currently, if not authenticated user runs `me` query, he gets `Cannot return null for non-nullable field Query.me` error. This is violation of GraphQL principles - if a query defines that it returns `User`, it can not return `null` instead. We have to prevent running the method entirely against not authenticated users. Here's the guard (`src/guards/auth.guard.ts`):
+At this stage we should get a working solution. There is one last thing to fix. Currently, when an unauthenticated user executes `me` query, he gets `Cannot return null for non-nullable field Query.me` error. This is a violation of GraphQL principles - if a query defines that it returns `User`, it cannot return `null` instead. We need to prevent the method from being executed against unauthenticated users. Here is the guard (`src/guards/auth.guard.ts`):
 
 ````typescript
 import { CanActivate, ExecutionContext, Injectable } from '@nestjs/common'
@@ -379,7 +383,7 @@ export class AuthGuard implements CanActivate {
 }
 ````
 
-We can use it with `@UseGuards(AuthGuard)` decorator in resolver the same way we usually use it for regular REST in Nuxt.js:
+We can use it with the `@UseGuards(AuthGuard)` decorator the in resolver in the same way we usually use it for regular REST in Nuxt.js:
 
 ````typescript
 @UseGuards(AuthGuard)
@@ -391,35 +395,45 @@ async me(@Context('user') user: User): Promise<User> {
 
 ![GraphQL Playground Authentication Flow](images/02-graphql-playground-authentication-flow.gif)
 
-### Where's Passport.JS?
-We are not using it. It gives overhead only. If you find it useful, [here's a great tutorial about setting up GraphQL with Passport.JS](https://www.youtube.com/watch?v=XPSSgAPjTb4).
+### Where is [Passport.JS](https://www.passportjs.org/)?
+We do not use it. It gives overhead only. If you find it useful, [here is a great tutorial on setting up GraphQL with Passport.JS](https://www.youtube.com/watch?v=XPSSgAPjTb4).
 
-## 5. Initial Front-End Setup
+## 5. Frontend Setup
 
 ````
 $ npx nuxi init frontend
 $ cd frontend
 ````
 
-The back-end url is `http://localhost:3001/graphql`. We have to add it to several configuration files. Let's start with the usual `.env`:
+The backend url is `http://localhost:3001/graphql`. We have to add it to several configuration files. Let us start with the usual `.env`:
 ````
-BASE_URL=http://localhost:3001/graphql
+BASE_URL_CLIENT=http://localhost:3001/graphql
+BASE_URL_SERVER=http://localhost:3001/graphql
 ````
 
 To be able to use `process.env` variables in Nuxt.js, we need to include it into `nuxt.config.js`:
 ````javascript
 runtimeConfig: {
+  baseUrl: process.env.BASE_URL_SERVER
   public: {
-    baseUrl: process.env.BASE_URL
+    baseUrl: process.env.BASE_URL_CLIENT
   }
 }
 ````
 
-Notice that it's in `public` section. This case it becomes available as `$nuxt.$config.baseUrl` both during server side rendering and on the client.
+Note that `baseUrl` specified twice. The root-level configuration is accessible from server-side only. Anything under `public` will be exposed to the frontend.
+
+### Why do we separate the URLs for CLIENT and SERVER?
+
+During development the URLs are the same, but in production the frontend and backend may be running on the same server by two node processes on different ports. Nginx might be set up so that the `/graphql` route leads to the backend, everything else - to the frontend process. This leads to the following `.env`:
+````
+BASE_URL_CLIENT=/graphql
+BASE_URL_SERVER=http://localhost:BACKEND_PRODUCTION_PORT/graphql
+````
 
 ## 6. Queries and GraphQL codegen
 
-We are going to write GraphQL queries using separate `api/queries/*.gql` files. It would be nice to have autocomplete and syntax highlight there. That's why VSCode Apollo Plugin is in use. It requires configuration to be defined in `apollo.config.js`: 
+We will write GraphQL queries using separate `api/queries/*.gql` files. It would be nice to have autocompletion and syntax highlighting there. For this reason, the VSCode Apollo plugin is used. It requires a configuration to be defined in `apollo.config.js`: 
 ````javascript
 module.exports = {
   client: {
@@ -431,7 +445,7 @@ module.exports = {
 }
 ````
 
-The next thing to set up is `graphql-codegen`. It creates TypeScript code based on `.gql` files. It gives type safety  while working with GraphQL data from Nuxt.js. To set it up we need to install:
+Next, `graphql-codegen` needs to be set up. It creates TypeScript code based on `.gql` files. It gives type safety  when working with GraphQL data from Nuxt.js. To set it up, we need to install:
 ````
 $ npm i --save @graphql-codegen/cli @graphql-codegen/typescript @graphql-codegen/typescript-operations @graphql-codegen/typed-document-node
 ````
@@ -448,7 +462,7 @@ generates:
       - typed-document-node
 ````
 
-Let's add the required queries into `api/queries/auth.gql`:
+Let's add the required queries to `api/queries/auth.gql`:
 
 ````graphql
 fragment AuthUser on User {
@@ -476,7 +490,7 @@ query me {
 }
 ````
 
-Now we can generate TypeScript code using the following command:
+Now we can generate TypeScript code with the following command:
 ````
 $ npx graphql-codegen --config codegen.yml
 ````
@@ -485,7 +499,7 @@ $ npx graphql-codegen --config codegen.yml
 ````
 $ npm i --save pinia @pinia/nuxt
 ````
-Following [this guide](https://pinia.vuejs.org/ssr/nuxt.html) we need to add `@pinia/nuxt` into the Nuxt.js modules configuration section, then we are free to go. Here's the simplest possible store (`stores/auth.ts`) handling authenticated user:
+Following [this guide](https://pinia.vuejs.org/ssr/nuxt.html), we need to add `@pinia/nuxt` to the configuration section of the Nuxt.js modules. Then we are good to go. Here is the simplest possible store (`stores/auth.ts`) that handles authenticated user:
 ````typescript
 import { defineStore } from 'pinia'
 import { AuthUserFragment } from '@/api/generated/types'
@@ -505,11 +519,11 @@ export const useAuthStore = defineStore({
 ````
 
 ## 8. Vuetify and Sass Variables
-It's not related to authentication, but still might be a bit tricky. We are going to install [Vuetify Next](https://next.vuetifyjs.com/) and create some shared styles/mixins sass. The goal is to be able to use Vuetify sass variables and shared mixins in components.
+This has nothing to do with authentication, but it could still be a little tricky. We will install [Vuetify Next](https://next.vuetifyjs.com/) and create some shared styles/mixins with sass. The goal is to be able to use Vuetify sass variables and shared mixins in components.
 ````
 $ npm i --save vuetify@next @mdi/js sass
 ````
-Vuetify integration will be handler in `plugins/1.vuetify.ts`. All the files inside `plugins` folder are injected automatically. An important thing is they are evaluated in alphabetical order. That's why if some plugin depends on another, it should be included later (and we'll use it). That's why numeric prefix is used for file names.
+Vuetify integration is managed in `plugins/1.vuetify.ts`. All files in the `plugins` folder are automatically injected. It is important to note that they are evaluated in alphabetical order. So if one plugin depends on another, it should be included later (and we will use it). For this reason, a numeric prefix is used for the file names.
 
 `plugins/1.vuetify.ts`:
 ````typescript
@@ -541,7 +555,7 @@ export default defineNuxtPlugin(nuxtApp => {
 })
 ````
 
-Suppose there's some sass mixin or variable we would like to use across all the components. We define it in `assets/styles/variables.sass`:
+Suppose there is a sass mixin or variable that we want to use across all components. We define it in `assets/styles/variables.sass`:
 
 ````sass
 @import "vuetify/lib/styles/settings" 
@@ -553,7 +567,7 @@ Suppose there's some sass mixin or variable we would like to use across all the 
   padding: $spacer * 4 // This variable is taken from Vuetify which is defined due to @import above
 ````
 
-Nuxt.js configuration has to be updated as well. Here's the final version of `nuxt.config.js`:
+Nuxt.js configuration also needs to be updated. Here is the final version of `nuxt.config.js`:
 
 ````javascript
 export default defineNuxtConfig({
@@ -580,7 +594,7 @@ export default defineNuxtConfig({
 })
 ````
 
-Pay attention to `additionalData` preprocessor option. It's required for being able to use shared mixins in components like that (`app.ts`):
+Pay attention to the `additionalData` preprocessor option. It is required if we want to use shared mixins in components like that (`app.ts`):
 ````typescript
 <template>
   <v-app>
@@ -610,7 +624,7 @@ const authStore = useAuthStore()
 ````
 
 ## 9. Villus setup
-Villus is a tiny GraphQL client much smaller than the default `@apollo/client`. Here's the plugin configuration `plugins/0.villus.ts`:
+Villus is a tiny GraphQL client much smaller than the default `@apollo/client`. Here is the plugin configuration `plugins/0.villus.ts`:
 ````typescript
 import { createClient, defaultPlugins } from 'villus'
 
@@ -644,13 +658,13 @@ export default defineNuxtPlugin((nuxtApp) => {
 })
 ````
 
-The main thing to notice here is `addHeadersPlugin`. Nuxt.js works both as client application (it sends requests from the browser) and as server application during server side rendering. If a user sends `signIn` or `me` request from the browser, http-only cookie is sent alongside the request. In this case `addHeadersPlugin` does nothing because it does not have access to the cookie. 
+The most important thing to note here is the `addHeadersPlugin`. Nuxt.js works both as a client application (it sends requests from the browser) and as a server application during server side rendering. When a user sends a `signIn` or `me` request from the browser, the http-only cookie is sent along with the request. In this case, `addHeadersPlugin` does nothing because it does not have access to the cookie. 
 
-When a page is reloaded, Nuxt.JS SSR engine runs the same code. This case it knows the value of http-only cookie (it was send in page reload request). It substitutes the value into authorization header.
+When a page is reloaded, Nuxt.JS SSR engine executes the same code. In this case, it knows the value of the http-only cookie (it was sent in the page reload request). It takes the value and substitutes it into the authorization header.
 
 ## 10. Villus usage
 
-Villus provides a very convenient `useQuery/useMutation` helpers. Let's consider how it works in login form:
+Villus provides a very handy `useQuery/useMutation` helpers. Let us take a look at how it works in login form:
 
 ````typescript
 <template>
@@ -686,15 +700,15 @@ watchEffect(() => {
 </script>
 ````
 
-Villus `useQuery/useMutation` methods don't throw exceptions. When they run, they fill either data or error.
-Since `SigninDocument` is a TypedDocumentNode, data is strongly typed. Hence, if data is filled (meaning no error), we can safely refer to `data.signin.email` and other fields from the model.
+Villus `useQuery/useMutation` methods do not throw exceptions. When executed, they either fill data or error.
+Since `SigninDocument` is a TypedDocumentNode, the data is strongly typed. So, if the data is filled (i.e. no error occurs), we can safely refer to `data.signin.email` and other fields.
 
-On this stage we should be able to sign in, run `me` request and sign out. However, reloading the page for signed in user does not work correctly - user is not authenticated.
+At this stage, we should be able to sign in, execute `me` request and sign out. Basically, the SPA is fully working. However, reloading the page for signed in user does not work correctly - SSR does not try to authenticate the user, and returns the page with sign in form instead of current user profile.
 
 ## 11. SSR Flow
-There was a special `nuxtServerInit` action available in Nuxt 2. It handled the code running in SSR only. Since it happens on server, it knows the http-only JWT cookie. It's possible to send `me` request and substitude user to the store.
+In Nuxt 2, there was a special `nuxtServerInit` action. It executes the code only during SSR. Since it takes place on the server, it knows the http-only JWT cookie. It is possible to check if the user is signed in, and if so, to fill the store and render authenticated user page.
 
-In Nuxt 3 the same flow can be achieved using server-only plugin. Let's create `plugins/9.init.server.ts` file. `9` means it should be run the last, after villus initialization. Suffix `server` automatically sets it to be run during SSR only.
+In Nuxt 3 the same flow can be achieved with a server-only plugin. Let us create the `plugins/9.init.server.ts` file. `9` means that it should be run last, after Villus initialization. The suffix `server` automatically specifies that it will be executed only during SSR.
 
 `plugins/9.init.server.ts`:
 ````typescript
@@ -711,7 +725,18 @@ export default defineNuxtPlugin(async () => {
 })
 ````
 
-This is the last step. Authentication should be fully working and persistent after page reload. Authenticated user (user name and filled pinia store) should be included right into the html code of a page, returned by Nuxt.
+This is the last step. Authentication should be fully functional and should persist after the page is reloaded. The authenticated user (email and pre-filled Pinia store) should be included directly in a page's HTML code returned by Nuxt.
 
 ![Nuxt.js view-source for authenticated user](images/03-nuxt-view-source-authenticated.png)
 
+## 12. Summary
+
+This article is published on [https://teamhood.com/engineering/nuxt3-nest-graphql-authentication-from-scratch/](https://teamhood.com/engineering/nuxt3-nest-graphql-authentication-from-scratch/).
+
+Source code is available on [https://github.com/Kasheftin/nuxt-nest-graphql-auth](https://github.com/Kasheftin/nuxt-nest-graphql-auth).
+
+Demo is deployed on [https://nuxt-nest-graphql-auth.rag.lt/](https://nuxt-nest-graphql-auth.rag.lt/).
+
+Demo GraphQL playground url is [https://nuxt-nest-graphql-auth.rag.lt/graphql](https://nuxt-nest-graphql-auth.rag.lt/graphql).
+
+![](images/04-graphql-final-demo.gif)
