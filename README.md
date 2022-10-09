@@ -710,3 +710,8 @@ export default defineNuxtPlugin(async () => {
   }
 })
 ````
+
+This is the last step. Authentication should be fully working and persistent after page reload. Authenticated user (user name and filled pinia store) should be included right into the html code of a page, returned by Nuxt.
+
+![Nuxt.js view-source for authenticated user](images/03-nuxt-view-source-authenticated.png)
+
