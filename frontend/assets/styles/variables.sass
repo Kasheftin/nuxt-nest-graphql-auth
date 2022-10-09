@@ -1,0 +1,7 @@
+@import "vuetify/lib/styles/settings" 
+
+=pn-cover-image($url, $top: 0.7, $center: 0.2, $bottom: 0.7)
+  background-image: linear-gradient(to top, rgba(0, 0, 0, $bottom), rgba(0, 0, 0, $center), rgba(0, 0, 0, $top)), $url
+  background-position: center center
+  background-size: cover
+  padding: $spacer * 4 // This variable is taken from Vuetify which is defined due to @import above

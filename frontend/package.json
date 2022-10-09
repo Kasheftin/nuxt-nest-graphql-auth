@@ -5,7 +5,8 @@
     "dev": "nuxt dev",
     "generate": "nuxt generate",
     "preview": "nuxt preview",
-    "postinstall": "nuxt prepare"
+    "postinstall": "nuxt prepare",
+    "codegen": "graphql-codegen --config codegen.yml"
   },
   "devDependencies": {
     "nuxt": "3.0.0-rc.11"
@@ -14,6 +15,17 @@
     "@graphql-codegen/cli": "^2.13.5",
     "@graphql-codegen/typed-document-node": "^2.3.3",
     "@graphql-codegen/typescript": "^2.7.3",
-    "@graphql-codegen/typescript-operations": "^2.5.3"
+    "@graphql-codegen/typescript-operations": "^2.5.3",
+    "@mdi/js": "^7.0.96",
+    "@pinia/nuxt": "^0.4.2",
+    "@types/node": "^18.8.3",
+    "graphql": "^16.6.0",
+    "pinia": "^2.0.22",
+    "sass": "^1.55.0",
+    "ts-node": "^10.9.1",
+    "typescript": "^4.8.4",
+    "villus": "^2.0.0",
+    "vue": "^3.2.40",
+    "vuetify": "^3.0.0-beta.13"
   }
 }

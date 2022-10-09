@@ -8,7 +8,6 @@ We are building full-stack Nuxt.JS/Nest.JS/GraphQL application with authenticati
   - **Nest.js** *(The most advanced Node.js framework + DTO and class-validator)*
   - **Prisma** *(TypeScript ORM, MySQL is in use)*
   - **GraphQL** *(We are using code-first approach)*
-  - **GraphQL/Shield** *(Authorization, Permissions)*
 - **Front-End**
   - **Nuxt.js v3** *(Vue.js framework with SSR support out of the box + Vite, Pinia, Composition API and 100% TypeScript)*
   - **Vuetify v3** *(Material design framework, still in beta but usable)* 
@@ -19,7 +18,7 @@ We are building full-stack Nuxt.JS/Nest.JS/GraphQL application with authenticati
   - **Apollo GraphQL** *(For syntax autocomplete)*
   - **Prisma** *(Working with schema.prisma files)*
 
-## 1. Initial Back-End Setup
+## 1. Back-End Setup
 During the development the application will connect to the locally running MySQL `nest-nuxt-auth` database, the back-end will run on `localhost:3001`, and the front-end on `localhost:3000`.
 
 ````
@@ -228,7 +227,7 @@ export class AuthService {
 }
 ````
 
-An essential thing to understand is how models correspond to each other. We defined user model twice: in prisma and in graphql. Hence, we have two classes - prisma user and graphql user. Service retrieves data from prisma, it returns prisma user. Resolver gets prisma user and presents it as graphql user. It works because in this particular case our users are compatible, but in general resolver should create a new graphql entity based on orm entity.
+An essential thing to understand is how models correspond to each other. We defined user model twice: in prisma and in graphql. Hence, we have two classes - prisma user and graphql user. Service retrieves data from prisma, it returns prisma user. Resolver gets prisma user and presents it as graphql user. It works because in this particular case our users are compatible, but in general resolver should create a new graphql entity based on the received orm entity.
 
 To wire things up we need to update `src/app.module`:
 
@@ -315,7 +314,7 @@ async me(token: string): Promise<User | null> {
 
 Notice we don't use refresh token technique. It's quite secure to store one long-lived token as http-only cookie instead. 
 
-We need to be able to write cookies from GraphQL resolver, that's why current request object has to be put to GraphQL context. The result of `authMiddleware` (currently signed in user) has to be put to the context as well, `src/app.module.ts`:
+We need to be able to write cookies from GraphQL resolver, that's why current request object has to be put to GraphQL context. The result of `authMiddleware` (currently signed in user) has to be put to the context as well, here's the updated `src/app.module.ts`:
 
 ````typescript
 GraphqlModule.forRootAsync({
@@ -327,7 +326,7 @@ GraphqlModule.forRootAsync({
 })
 ````
 
-Here's `src/auth/auth.middleware.ts` which reads both the cookie and authorization header and returns the corresponding user:
+It calls `src/auth/auth.middleware.ts` which reads both the cookie and authorization header and returns the corresponding user if success:
 
 ````typescript
 import { Request } from 'express'
@@ -339,7 +338,9 @@ export const authenticateUserByRequest = (authService: AuthService, request: Req
 }
 ````
 
-We have to update `src/auth/auth.resolver.ts` with the corresponding mutations:
+The reason we need to support both cookie and authorization header is because Nuxt.js is going to send 2 types of requests: front-end (http-only cookie is in use) and back-end (during server side rendering, when it has access to the cookie and resends it in authorization header). 
+
+Now we can use GraphQL context in the corresponding mutations:
 
 ````typescript
 @Mutation(() => User)
@@ -361,35 +362,31 @@ async me(@Context('user') user: User): Promise<User> {
 }
 ````
 
-The last thing to do here is to deny using `me` query and `signOut` mutation for not authenticated users. We use `graphql-shield` for that. Here's how to set it up:
+On this stage we should get the working solution. There's one last thing to fix. Currently, if not authenticated user runs `me` query, he gets `Cannot return null for non-nullable field Query.me` error. This is violation of GraphQL principles - if a query defines that it returns `User`, it can not return `null` instead. We have to prevent running the method entirely against not authenticated users. Here's the guard (`src/guards/auth.guard.ts`):
 
-````
-$ npm i --save graphql-shield graphql-middleware
-````
-
-`src/permissions.ts`:
 ````typescript
-import { rule, shield } from 'graphql-shield'
+import { CanActivate, ExecutionContext, Injectable } from '@nestjs/common'
+import { GqlExecutionContext } from '@nestjs/graphql'
+import { User } from '@prisma/client'
 
-export const isAuthenticated = rule({})(async (parent, args, context) => {
-  return !!context.user
-})
-
-export const permissions = shield({
-  Query: {
-    me: isAuthenticated
-  },
-  Mutation: {
-    signOut: isAuthenticated
+@Injectable()
+export class AuthGuard implements CanActivate {
+  canActivate(context: ExecutionContext) {
+    const ctx = GqlExecutionContext.create(context)
+    const user: User | null = ctx.getContext().user || null
+    return !!user
   }
-})
+}
 ````
 
-GraphQL configuration has to include shield configuration in the following way (`src/app.module.ts`):
+We can use it with `@UseGuards(AuthGuard)` decorator in resolver the same way we usually use it for regular REST in Nuxt.js:
+
 ````typescript
-import { permissions } from '@/permissions'
-...
-transformSchema: schema => applyMiddleware(schema, permissions)
+@UseGuards(AuthGuard)
+@Query(() => User)
+async me(@Context('user') user: User): Promise<User> {
+  return user
+}
 ````
 
 ![GraphQL Playground Authentication Flow](images/02-graphql-playground-authentication-flow.gif)
@@ -418,11 +415,11 @@ runtimeConfig: {
 }
 ````
 
-Notice that it's in `public` section. This case it becomes available both during server side rendering and on the client.
+Notice that it's in `public` section. This case it becomes available as `$nuxt.$config.baseUrl` both during server side rendering and on the client.
 
 ## 6. Queries and GraphQL codegen
 
-We are going to write GraphQL queries in separate `api/queries/*.gql` files. It would be nice to have autocomplete and syntax highlight there. That's why VSCode Apollo Plugin is in use. It's configuration must be defined in `apollo.config.js`: 
+We are going to write GraphQL queries using separate `api/queries/*.gql` files. It would be nice to have autocomplete and syntax highlight there. That's why VSCode Apollo Plugin is in use. It requires configuration to be defined in `apollo.config.js`: 
 ````javascript
 module.exports = {
   client: {
@@ -484,5 +481,232 @@ Now we can generate TypeScript code using the following command:
 $ npx graphql-codegen --config codegen.yml
 ````
 
-## 7. Vuetify and Sass Variables
-It's not related to authentication, but still might be a bit tricky. We are going to install Vuetify Next and create some shared styles/mixins sass. The goal is to be able to use Vuetify sass variables and shared mixins in components.
+## 7. Pinia
+````
+$ npm i --save pinia @pinia/nuxt
+````
+Following [this guide](https://pinia.vuejs.org/ssr/nuxt.html) we need to add `@pinia/nuxt` into the Nuxt.js modules configuration section, then we are free to go. Here's the simplest possible store (`stores/auth.ts`) handling authenticated user:
+````typescript
+import { defineStore } from 'pinia'
+import { AuthUserFragment } from '@/api/generated/types'
+
+export type AuthState = {
+  user: AuthUserFragment | null
+}
+
+export const useAuthStore = defineStore({
+  id: 'auth-store',
+  state(): AuthState {
+    return {
+      user: null
+    }
+  }
+})
+````
+
+## 8. Vuetify and Sass Variables
+It's not related to authentication, but still might be a bit tricky. We are going to install [Vuetify Next](https://next.vuetifyjs.com/) and create some shared styles/mixins sass. The goal is to be able to use Vuetify sass variables and shared mixins in components.
+````
+$ npm i --save vuetify@next @mdi/js sass
+````
+Vuetify integration will be handler in `plugins/1.vuetify.ts`. All the files inside `plugins` folder are injected automatically. An important thing is they are evaluated in alphabetical order. That's why if some plugin depends on another, it should be included later (and we'll use it). That's why numeric prefix is used for file names.
+
+`plugins/1.vuetify.ts`:
+````typescript
+import { createVuetify } from 'vuetify'
+import { aliases, mdi } from 'vuetify/iconsets/mdi-svg'
+import * as components from 'vuetify/components'
+import * as directives from 'vuetify/directives'
+
+export default defineNuxtPlugin(nuxtApp => {
+  const vuetify = createVuetify({
+    components,
+    directives,
+    icons: {
+      defaultSet: 'mdi',
+      aliases,
+      sets: {
+        mdi
+      }
+    },
+    defaults: {
+      VTextField: {
+        density: "compact",
+        variant: "outlined"
+      }
+    },
+    ssr: true
+  })
+  nuxtApp.vueApp.use(vuetify)
+})
+````
+
+Suppose there's some sass mixin or variable we would like to use across all the components. We define it in `assets/styles/variables.sass`:
+
+````sass
+@import "vuetify/lib/styles/settings" 
+
+=pn-cover-image($url)
+  background-image: $url
+  background-position: center center
+  background-size: cover
+  padding: $spacer * 4 // This variable is taken from Vuetify which is defined due to @import above
+````
+
+Nuxt.js configuration has to be updated as well. Here's the final version of `nuxt.config.js`:
+
+````javascript
+export default defineNuxtConfig({
+  css: ['vuetify/lib/styles/main.sass'],  
+  build: {
+    transpile: ['vuetify']
+  },
+  modules: ['@pinia/nuxt'],
+  vite: {
+    css: {
+      preprocessorOptions: {
+        sass: {
+          additionalData: '@use "@/assets/styles/variables.sass" as *' + "\n"
+        }
+      }
+    }
+  },
+  components: true,
+  runtimeConfig: {
+    public: {
+      baseUrl: process.env.BASE_URL
+    }
+  }
+})
+````
+
+Pay attention to `additionalData` preprocessor option. It's required for being able to use shared mixins in components like that (`app.ts`):
+````typescript
+<template>
+  <v-app>
+    <v-main>
+      <v-container fluid class="pn-container">
+        <AuthProfileCard v-if="authStore.user" />
+        <AuthSigninForm v-else />
+      </v-container>  
+    </v-main>
+  </v-app>
+</template>
+
+<script setup lang="ts">
+import { useAuthStore } from '@/stores/auth'
+const authStore = useAuthStore()
+</script>
+
+<style lang="sass">
+.pn-container
+  +pn-cover-image(url("@/assets/images/home.jpg")) // from variables.sass
+  display: flex
+  align-items: center
+  justify-content: center
+  height: 100%
+  padding: $spacer * 4 // from vuetify
+</style>
+````
+
+## 9. Villus setup
+Villus is a tiny GraphQL client much smaller than the default `@apollo/client`. Here's the plugin configuration `plugins/0.villus.ts`:
+````typescript
+import { createClient, defaultPlugins } from 'villus'
+
+const parseCookieHeader = (value?: string) => {
+  return (value || '').split(';').reduce((out: Record<string, string>, part) => {
+    const pair = part.split('=')
+    if (pair[0] && pair[1]) {
+      out[pair[0]] = pair[1]
+    }
+    return out
+  }, {})
+}
+
+const addHeadersPlugin = (cookie: string) => (({ opContext }) => {
+  opContext.credentials = 'include'
+  const cookiesParsed = parseCookieHeader(cookie)
+  if (cookiesParsed.jwt) {
+    opContext.headers.Authorization = `Bearer ${cookiesParsed.jwt}`
+  }
+})
+
+export default defineNuxtPlugin((nuxtApp) => {
+  const client = createClient({
+    url: nuxtApp.$config.baseUrl,
+    use: [
+      addHeadersPlugin(nuxtApp.ssrContext?.event?.req?.headers?.cookie),
+      ...defaultPlugins()
+    ]
+  })
+  nuxtApp.vueApp.use(client)
+})
+````
+
+The main thing to notice here is `addHeadersPlugin`. Nuxt.js works both as client application (it sends requests from the browser) and as server application during server side rendering. If a user sends `signIn` or `me` request from the browser, http-only cookie is sent alongside the request. In this case `addHeadersPlugin` does nothing because it does not have access to the cookie. 
+
+When a page is reloaded, Nuxt.JS SSR engine runs the same code. This case it knows the value of http-only cookie (it was send in page reload request). It substitutes the value into authorization header.
+
+## 10. Villus usage
+
+Villus provides a very convenient `useQuery/useMutation` helpers. Let's consider how it works in login form:
+
+````typescript
+<template>
+  <v-form @submit.prevent="execute({ data: form })">
+    <v-alert v-if="error" type="error">
+      {{ error }}
+    </v-alert>
+    <v-text-field v-model="form.email" label="Email" />
+    <v-text-field v-model="form.password" label="Password" />
+    <v-btn :loading="isFetching" type="submit">
+      Sign In
+    </v-btn>
+  </v-form>
+</template>
+
+<script setup lang="ts">
+import { useMutation } from 'villus'
+import { useAuthStore } from '@/stores/auth'
+import { SigninDocument } from '@/api/generated/types'
+
+const { data, execute, isFetching, error } = useMutation(SigninDocument)
+
+const form = reactive({
+  email: '',
+  password: ''
+})
+
+const authStore = useAuthStore()
+
+watchEffect(() => {
+  authStore.user = data.value?.signin || null
+})
+</script>
+````
+
+Villus `useQuery/useMutation` methods don't throw exceptions. When they run, they fill either data or error.
+Since `SigninDocument` is a TypedDocumentNode, data is strongly typed. Hence, if data is filled (meaning no error), we can safely refer to `data.signin.email` and other fields from the model.
+
+On this stage we should be able to sign in, run `me` request and sign out. However, reloading the page for signed in user does not work correctly - user is not authenticated.
+
+## 11. SSR Flow
+There was a special `nuxtServerInit` action available in Nuxt 2. It handled the code running in SSR only. Since it happens on server, it knows the http-only JWT cookie. It's possible to send `me` request and substitude user to the store.
+
+In Nuxt 3 the same flow can be achieved using server-only plugin. Let's create `plugins/9.init.server.ts` file. `9` means it should be run the last, after villus initialization. Suffix `server` automatically sets it to be run during SSR only.
+
+`plugins/9.init.server.ts`:
+````typescript
+import { useQuery } from 'villus'
+import { useAuthStore } from '@/stores/auth'
+import { MeDocument } from '@/api/generated/types'
+
+export default defineNuxtPlugin(async () => {
+  const authStore = useAuthStore()
+  const { data, error } = await useQuery({ query: MeDocument })
+  if (!error.value) {
+    authStore.user = data.value.me
+  }
+})
+````
