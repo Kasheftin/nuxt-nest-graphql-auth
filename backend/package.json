@@ -34,8 +34,6 @@
     "class-validator": "^0.13.2",
     "cookie-parser": "^1.4.6",
     "crypt": "^0.0.2",
-    "graphql-middleware": "^6.1.33",
-    "graphql-shield": "^7.6.2",
     "nestjs-prisma": "^0.18.0",
     "prisma": "^4.4.0",
     "reflect-metadata": "^0.1.13",

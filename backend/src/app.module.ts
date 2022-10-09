@@ -1,10 +1,8 @@
 import { Module } from '@nestjs/common'
 import { PrismaModule } from 'nestjs-prisma'
 import { GraphQLModule } from '@nestjs/graphql'
-import { applyMiddleware } from 'graphql-middleware'
 import { join } from 'path/posix'
 import { ApolloDriver, ApolloDriverConfig } from '@nestjs/apollo'
-import { permissions } from '@/permissions'
 import { AuthModule } from '@/auth/auth.module'
 import { AuthService } from '@/auth/auth.service'
 import { authenticateUserByRequest } from '@/auth/auth.middleware'
@@ -29,8 +27,7 @@ import { authenticateUserByRequest } from '@/auth/auth.middleware'
         context: async ({ req }) => {
           const user = await authenticateUserByRequest(authService, req)
           return { req, user }
-        },
-        transformSchema: schema => applyMiddleware(schema, permissions)
+        }
       })
     })
   ]
