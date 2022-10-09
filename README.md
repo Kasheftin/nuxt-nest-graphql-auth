@@ -18,6 +18,12 @@ We are building full-stack Nuxt.JS/Nest.JS/GraphQL application with authenticati
   - **[Apollo GraphQL](https://marketplace.visualstudio.com/items?itemName=apollographql.vscode-apollo)** *(For syntax autocomplete on the frontend)*
   - **[Prisma](https://marketplace.visualstudio.com/items?itemName=Prisma.prisma)** *(Working with schema.prisma files)*
 
+### Links & Demo
+- [https://github.com/Kasheftin/nuxt-nest-graphql-auth](https://github.com/Kasheftin/nuxt-nest-graphql-auth) - Source code
+- [https://nuxt-nest-graphql-auth.rag.lt/](https://nuxt-nest-graphql-auth.rag.lt/) - Demo
+- [https://nuxt-nest-graphql-auth.rag.lt/graphql](https://nuxt-nest-graphql-auth.rag.lt/graphql) - Demo GraphQL Playground
+
+
 ## 1. Backend Setup
 During the development the application will connect to the locally running MySQL `nest-nuxt-auth` database, the backend will run on `localhost:3001`, and the frontend on `localhost:3000`.
 
@@ -27,7 +33,7 @@ $ nest new backend
 $ cd backend
 ````
 
-Here's the all `.env` configuration we need (it needs to be added to .gitignore):
+Here is the all `.env` configuration we need (it needs to be added to .gitignore):
 
 ````
 PORT=3001
@@ -383,7 +389,7 @@ export class AuthGuard implements CanActivate {
 }
 ````
 
-We can use it with the `@UseGuards(AuthGuard)` decorator the in resolver in the same way we usually use it for regular REST in Nuxt.js:
+We can use it with the `@UseGuards(AuthGuard)` decorator in the resolver in the same way we use it for regular REST in Nuxt.js:
 
 ````typescript
 @UseGuards(AuthGuard)
@@ -405,7 +411,7 @@ $ npx nuxi init frontend
 $ cd frontend
 ````
 
-The backend url is `http://localhost:3001/graphql`. We have to add it to several configuration files. Let us start with the usual `.env`:
+The backend url is `http://localhost:3001/graphql`. We have to add it to several configuration files. Let's start with the usual `.env`:
 ````
 BASE_URL_CLIENT=http://localhost:3001/graphql
 BASE_URL_SERVER=http://localhost:3001/graphql
@@ -664,7 +670,7 @@ When a page is reloaded, Nuxt.JS SSR engine executes the same code. In this case
 
 ## 10. Villus usage
 
-Villus provides a very handy `useQuery/useMutation` helpers. Let us take a look at how it works in login form:
+Villus provides a very handy `useQuery/useMutation` helpers. Let's take a look at how it works in login form:
 
 ````typescript
 <template>
@@ -708,7 +714,7 @@ At this stage, we should be able to sign in, execute `me` request and sign out. 
 ## 11. SSR Flow
 In Nuxt 2, there was a special `nuxtServerInit` action. It executes the code only during SSR. Since it takes place on the server, it knows the http-only JWT cookie. It is possible to check if the user is signed in, and if so, to fill the store and render authenticated user page.
 
-In Nuxt 3 the same flow can be achieved with a server-only plugin. Let us create the `plugins/9.init.server.ts` file. `9` means that it should be run last, after Villus initialization. The suffix `server` automatically specifies that it will be executed only during SSR.
+In Nuxt 3 the same flow can be achieved with a server-only plugin. Let's create the `plugins/9.init.server.ts` file. `9` means that it should be run last, after Villus initialization. The suffix `server` automatically specifies that it will be executed only during SSR.
 
 `plugins/9.init.server.ts`:
 ````typescript
@@ -727,7 +733,7 @@ export default defineNuxtPlugin(async () => {
 
 This is the last step. Authentication should be fully functional and should persist after the page is reloaded. The authenticated user (email and pre-filled Pinia store) should be included directly in a page's HTML code returned by Nuxt.
 
-![Nuxt.js view-source for authenticated user](images/03-nuxt-view-source-authenticated.png)
+![Nuxt.js view page source for authenticated user](images/03-nuxt-view-source-authenticated.png)
 
 ## 12. Summary
 
@@ -739,4 +745,4 @@ Demo is deployed on [https://nuxt-nest-graphql-auth.rag.lt/](https://nuxt-nest-g
 
 Demo GraphQL playground url is [https://nuxt-nest-graphql-auth.rag.lt/graphql](https://nuxt-nest-graphql-auth.rag.lt/graphql).
 
-![](images/04-graphql-final-demo.gif)
+![Nuxt.js Nest.js GraphQL Auth Flow](images/04-graphql-final-demo.gif)
