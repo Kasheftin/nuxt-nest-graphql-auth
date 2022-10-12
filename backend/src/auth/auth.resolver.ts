@@ -29,14 +29,14 @@ export class AuthResolver {
 
   @UseGuards(AuthGuard)
   @Mutation(() => User)
-  async signOut(@Context('req') req: Request, @Context('user') user: User): Promise<User> {
+  signOut(@Context('req') req: Request, @Context('user') user: User): User {
     req.res?.clearCookie('jwt', { httpOnly: true })
     return user
   }
 
   @UseGuards(AuthGuard)
   @Query(() => User)
-  async me(@Context('user') user: User): Promise<User> {
+  me(@Context('user') user: User): User {
     return user
   }
 }
