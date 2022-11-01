@@ -21,7 +21,7 @@ import { authenticateUserByRequest } from '@/auth/auth.middleware'
         playground: true,
         autoSchemaFile: join(process.cwd(), 'src/schema.gql'),
         cors: {
-          origin: 'http://localhost:3000',
+          origin: 'http://localhost:48992',
           credentials: true
         },
         context: async ({ req }) => {

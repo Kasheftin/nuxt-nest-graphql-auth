@@ -1,8 +1,5 @@
 <template>
   <v-app>
-    <v-app-bar>
-      <v-btn>Buggy Test Button</v-btn>
-    </v-app-bar>
     <v-main>
       <v-container fluid class="pn-container">
         <AuthProfileCard v-if="authStore.user" />
