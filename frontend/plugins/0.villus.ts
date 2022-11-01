@@ -2,7 +2,7 @@ import { createClient, defaultPlugins } from 'villus'
 
 const parseCookieHeader = (value?: string) => {
   return (value || '').split(';').reduce((out: Record<string, string>, part) => {
-    const pair = part.split('=')
+    const pair = part.split('=').map(v => v.trim())
     if (pair[0] && pair[1]) {
       out[pair[0]] = pair[1]
     }
